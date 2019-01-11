@@ -14,16 +14,17 @@ const actions = {
   updateData: value => ({ data: value })
 };
 
-async function fetchNewState(state, actions) {
+async function fetchNewState(actions) {
   try {
     let resp = await Axios.post("/api/state");
 
     actions.updateState(resp.data.state);
 
     localStorage.setItem("state_time", new Date().getTime());
-
+    localStorage.setItem("state", resp.data.state);
     return resp.data.state;
   } catch (err) {
+    console.error(err);
     alert("发生了错误...");
   }
 }
@@ -33,9 +34,8 @@ async function onLoad(actions) {
   let updateTime = parseInt(localStorage.getItem("state_time"));
 
   if (localState === null || updateTime === null) {
-    let newState = await fetchNewState();
+    let newState = await fetchNewState(actions);
 
-    // redirect;
     window.location.href = `https://github.com/login/oauth/authorize?client_id=a0ba7c72bdbada6503b0&state=${newState}`;
     return;
   }
@@ -45,7 +45,18 @@ async function onLoad(actions) {
       state: localState
     });
 
-    actions.updateData(resp.data);
+    let data = resp.data;
+
+    let chartData = {
+      labels: Object.keys(data),
+      datasets: [
+        {
+          label: "repo",
+          data: Object.values(a)
+        }
+      ]
+    };
+    actions.updateData(chartData);
   } catch (err) {
     console.error(err);
 
