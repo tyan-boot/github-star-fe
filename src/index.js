@@ -19,8 +19,6 @@ async function fetchNewState(actions) {
     let resp = await Axios.post("/api/state");
 
     actions.updateState(resp.data.state);
-
-    localStorage.setItem("state_time", new Date().getTime());
     localStorage.setItem("state", resp.data.state);
     return resp.data.state;
   } catch (err) {
@@ -29,16 +27,8 @@ async function fetchNewState(actions) {
   }
 }
 
-async function onLoad(actions) {
+async function onLoad(state, actions) {
   let localState = localStorage.getItem("state");
-  let updateTime = parseInt(localStorage.getItem("state_time"));
-
-  if (localState === null || updateTime === null) {
-    let newState = await fetchNewState(actions);
-
-    window.location.href = `https://github.com/login/oauth/authorize?client_id=a0ba7c72bdbada6503b0&state=${newState}`;
-    return;
-  }
 
   try {
     let resp = await Axios.post("/api/stars", {
@@ -47,15 +37,25 @@ async function onLoad(actions) {
 
     let data = resp.data;
 
+    if (data.status === 4) {
+      let newState = await fetchNewState(actions);
+
+      window.location.href = `https://github.com/login/oauth/authorize?client_id=a0ba7c72bdbada6503b0&state=${newState}`;
+      return;
+    }
+
     let chartData = {
       labels: Object.keys(data),
       datasets: [
         {
           label: "repo",
-          data: Object.values(a)
+          data: Object.values(data)
         }
       ]
     };
+
+    let ele = document.querySelector("#chart");
+    showStar(ele, chartData);
     actions.updateData(chartData);
   } catch (err) {
     console.error(err);
@@ -69,7 +69,7 @@ function showStar(ele, state) {
 
   let chart = new Chart(ctx, {
     type: "horizontalBar",
-    data: state.data,
+    data: data,
     options: {
       scales: {
         xAxes: [
@@ -85,7 +85,7 @@ function showStar(ele, state) {
 }
 
 const view = (state, actions) => (
-  <div oncreate={() => onLoad(actions)}>
+  <div oncreate={() => onLoad(state, actions)}>
     <canvas oncreate={ele => showStar(ele, state)} id="chart" />
   </div>
 );
