@@ -64,7 +64,7 @@ async function onLoad(state, actions) {
   }
 }
 
-function showStar(ele, state) {
+function showStar(ele, data) {
   let ctx = ele.getContext("2d");
 
   let chart = new Chart(ctx, {
